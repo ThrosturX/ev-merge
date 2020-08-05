@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import collections
 import csv
 import itertools
 import os
@@ -104,19 +105,89 @@ def build_file_data(file_name):
                 resources[r_type][r_id] = row
     return resources
 
+def make_writeable(resource):
+    new_resource = collections.OrderedDict()
+    for key, value in resource.items():
+        ival = value
+        try:
+            ival = int(value)
+        except:
+            if not ival.startswith('0'):
+                ival = '"{0}"'.format(value)
+
+        new_resource[key] = ival
+    
+    return new_resource
+
 def build_plugin(data, out_file_name):
+    num_resources = 0
+    for resource_type, resources in data.items():
+        num_resources += len(resources)
+
     with open(out_file_name, 'w', newline='', encoding='latin-1') as csvfile:
+        print(""""Format"    "EVNEW text 1.0.1"
+Created by"    "EVNEW Public Beta 1.0.2"
+"Number of resources"   {}
+""".format(num_resources), file=csvfile)
         for resource_type, resources in data.items():
             if not resources:
                 continue
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
-            print(field_names)
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONNUMERIC)
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONNUMERIC, lineterminator='\n', quotechar='"')
             writer.writeheader()
             for resource in resources.values():
-                writer.writerow(resource)
+                n_r = make_writeable(resource)
+                writer.writerow(n_r)
             print("", file=csvfile)
+
+    # rewrite the file...
+
+def build_plugin_manually(data, out_file_name):
+    num_resources = 0
+    for resource_type, resources in data.items():
+        num_resources += len(resources)
+
+    with open(out_file_name, 'w', newline='', encoding='latin-1') as csvfile:
+        print(""""Format"\t"EVNEW text 1.0.1"
+"Created by"\t"EVNEW 1.0.4"
+"Number of resources"\t{}
+""".format(num_resources), file=csvfile, end='\r\n')
+        for resource_type, resources in data.items():
+            if not resources:
+                continue
+            print("writing {} of {} resources".format(resource_type, len(resources)))
+            field_names = list(next(iter(resources.values())))
+            header = ['"{}"'.format(x) for x in field_names]
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='', escapechar='')
+            print('\t'.join(header), file=csvfile, end='\r\n')
+#           writer.writeheader()
+            for resource in resources.values():
+                n_r = make_writeable(resource)
+                writer.writerow(n_r)
+            print("", file=csvfile, end='\r\n')
+
+def build_plugin_manually_multifile(data, out_file_name):
+    for resource_type, resources in data.items():
+        if not resources:
+            continue
+        num_resources = len(resources)
+        with open(resource_type + '_' + out_file_name, 'w', newline='', encoding='latin-1') as csvfile:
+            print(""""Format"\t"EVNEW text 1.0.1"
+"Created by"\t"EVNEW 1.0.4"
+"Number of resources"\t{}
+""".format(num_resources), file=csvfile)
+            print("writing {} of {} resources".format(resource_type, len(resources)))
+            field_names = list(next(iter(resources.values())))
+            header = ['"{}"'.format(x) for x in field_names]
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='', escapechar='')
+            print('\t'.join(header), file=csvfile, end='\r\n')
+#           writer.writeheader()
+            for resource in resources.values():
+                n_r = make_writeable(resource)
+                writer.writerow(n_r)
+            print("", file=csvfile, end='\r\n')
+
 
 class Transposer():
     def __init__(self, gd):
@@ -249,6 +320,7 @@ class Transposer():
     
             self.update_resource(rsc, n_id)
 
+    # TODO: This probably needs to get done on the resources that use them
     def reallocate_desc(self, resources):
         resource_type = 'desc'
 
@@ -516,7 +588,8 @@ def transpose_stuff():
 
 
     # TODO: Write transposer.data() to new plugin
-    build_plugin(transposer.data(), "plugin.rez.txt")
+    build_plugin_manually(transposer.data(), "full_plugin.txt")
+    build_plugin_manually_multifile(transposer.data(), "part.txt")
 
 if __name__ == '__main__':
     transpose_stuff()
