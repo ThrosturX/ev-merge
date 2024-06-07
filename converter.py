@@ -158,7 +158,7 @@ def build_plugin_manually_multifile(data, out_file_name):
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\\', escapechar='\\')
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\\', escapechar='\0')
             print('\t'.join(header), file=csvfile, end='\r\n')
 #           writer.writeheader()
             for resource in resources.values():
@@ -198,11 +198,13 @@ class Transposer():
 
         return False
 
-    def get_avail_id(self, r_type, max_resources=128, start_index=128):
+    def get_avail_id(self, r_type, max_resources=128, start_index=128, even_only=False):
         used_gd_ids = [r_id for r_id in self.game_data[r_type]]
         used_al_ids = self.allocated[r_type]
         used_ids = used_gd_ids + used_al_ids
         for n_id in range(start_index, max_resources + start_index):
+            if even_only and n_id % 2 == 1:
+                continue
             if n_id in used_ids:
                 continue
             return n_id
@@ -395,10 +397,10 @@ class Transposer():
             old_sprite = int(rsc['Sprite'])
             print(type(rsc['Sprite']))
             # transpose the rle8 and rleD based on old_sprite
-            rle_id = self.get_avail_id('rleD', 255, 200)
+            rle_id = self.get_avail_id('rleD', 255, 200, even_only=True)
             mask_id = rle_id + 1
             if 2000 <= old_sprite <= 2255:
-                rle_id = self.get_avail_id('rleD', 255, 2000)
+                rle_id = self.get_avail_id('rleD', 255, 2000, even_only=True)
             try:
 #               self.update_resource(rle8[old_sprite], rle_id)
                 self.update_resource(rled[old_sprite], rle_id)
@@ -411,7 +413,7 @@ class Transposer():
                 # Since this wasn't a RLE, we need a mask
                 # also work on the old mask
                 old_mask = int(rsc['Mask'])
-                new_mask = self.get_avail_id('rleD', 512)
+                new_mask = self.get_avail_id('rleD', 512, even_only=True)
                 try:
 #                   self.update_resource(rle8[old_mask], new_mask)
                     self.update_resource(rled[old_mask], new_mask)
@@ -458,7 +460,7 @@ class Transposer():
                 except KeyError:
                     #print("{} has not been reassigned assigned from {}".format(rsc['Name'], old_rled))
                     pass
-                rle_id = self.get_avail_id('rleD', 200, 1000)
+                rle_id = self.get_avail_id('rleD', 200, 1000, even_only=True)
                 print("{}: {}->{}".format(rsc['Name'], old_rled, rle_id))
                 self.update_resource(rled[old_rled], rle_id)
                 rsc[label] = str(rle_id)
