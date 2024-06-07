@@ -138,7 +138,7 @@ def build_plugin_manually(data, out_file_name):
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='', escapechar='')
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\0', escapechar='\0')
             print('\t'.join(header), file=csvfile, end='\r\n')
 #           writer.writeheader()
             for resource in resources.values():
@@ -158,7 +158,7 @@ def build_plugin_manually_multifile(data, out_file_name):
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='', escapechar='')
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\\', escapechar='\\')
             print('\t'.join(header), file=csvfile, end='\r\n')
 #           writer.writeheader()
             for resource in resources.values():
@@ -606,7 +606,7 @@ class Transposer():
     def reallocate_syst(self, resources, nebu, pict):
         resource_type = 'syst'
 
-        SYS_Y_OFF = 600
+        SYS_Y_OFF = 700
 
         # first reallocate the systems
         for r_id, rsc in resources.items():
@@ -747,8 +747,8 @@ def transpose_stuff():
 
 
     # TODO: Write transposer.data() to new plugin
-    build_plugin_manually(transposer.data(), "full_plugin.txt")
-    build_plugin_manually_multifile(transposer.data(), "part.txt")
+    build_plugin_manually(transposer.data(), "full_plugin2.txt")
+    build_plugin_manually_multifile(transposer.data(), "part2.txt")
 
 if __name__ == '__main__':
     transpose_stuff()
