@@ -894,7 +894,7 @@ def transpose_stuff():
 
 
     # TODO: Write transposer.data() to new plugin
-    build_plugin_manually(transposer.data(), "full_plugin3.txt")
+    build_plugin_manually(transposer.data(), "full_plugin.txt")
     build_plugin_manually_multifile(transposer.data(), "part.txt")
 
 if __name__ == '__main__':
