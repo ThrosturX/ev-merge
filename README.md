@@ -27,9 +27,9 @@ Escape Velocity isn't exactly the best-supported game out there anymore. Fortuna
 I recommend playing the game by downloading the `Community Edition` (this should also work under `wine` with `ddraw`, YMMV but I personally had the best results with the `gdi` renderer and reasonably sane settings).
 
 Useful links:
-* [https://github.com/andrews05/EV-Nova-CE](https://github.com/andrews05/EV-Nova-CE)
-* [https://escape-velocity.games/](https://escape-velocity.games/)
-* [https://wiki.ambrosia.garden/doku.php?id=start](https://wiki.ambrosia.garden/doku.php?id=start)
+* [github.com/andrews05/EV-Nova-CE](https://github.com/andrews05/EV-Nova-CE)
+* [escape-velocity.games/](https://escape-velocity.games/)
+* [wiki.ambrosia.garden/doku.php?id=start](https://wiki.ambrosia.garden/doku.php?id=start)
 
 ### EVNEW
 
