@@ -15,3 +15,5 @@ e.g. from https://archive.org/details/apple-quicktime-7.7.9-last-version-for-the
 * Open full\_plugin.txt with the open EVNEW.exe instance
 * Save the plugin as a `.rez` file with EVNEW.exe
 * Use the plugin how you seem fit
+
+Don't try to convert from `txt` to `rez` on the command line if you have any resources that need to be imported. You need to launch the app visually and use the `File -> Load` method for the QuickTime importer to actually work. Don't ask me why, maybe it's gremlins.
