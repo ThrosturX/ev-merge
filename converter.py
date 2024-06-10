@@ -714,16 +714,6 @@ class Transposer():
                 pass
 
             # update the custom fields
-            custSnd = rsc['Custom Count']
-            os_id = int(custSnd)
-            if os_id >= 360:
-                ns_id = self.get_avail_id('snd', 2000, os_id)
-                s_rsc = snd[os_id]
-                self.update_resource(s_rsc, ns_id)
-                rsc['Custom Count'] = ns_id
-                print('sound ', os_id, ' -> ', ns_id)
-                input()
-
             custPic = rsc['Custom Landscape']
             op_id = int(custPic)
             if op_id >= 128:
@@ -731,6 +721,18 @@ class Transposer():
                 p_rsc = pict[op_id]
                 self.update_resource(p_rsc, np_id)
                 rsc['Custom Landscape'] = np_id
+
+            # NOTE: Either Override doesn't have any custom sounds on planets...
+            #       Or I misunderstood something. Either way, the 'Custom Count'
+            #       field doesn't seem to represent anything else and is in the
+            #       right place in the order to be supposed to be custom sound.
+            custSnd = rsc['Custom Count']
+            os_id = int(custSnd)
+            if os_id >= 360:
+                ns_id = self.get_avail_id('snd', 2000, os_id)
+                s_rsc = snd[os_id]
+                self.update_resource(s_rsc, ns_id)
+                rsc['Custom Count'] = ns_id
 
             self.update_resource(rsc, n_id)
 
