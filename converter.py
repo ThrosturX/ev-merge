@@ -6,6 +6,92 @@ import os
 from pprint import pprint
 import time
 
+def _generate_foroth(siqwe_id):
+    return {
+        'Resource Type': 'syst',
+        'ID': 471,
+        'Name': "Foroth",
+        'X Position': '74',
+        'Y Position': '-276',
+        'Hyperlink 1': 557,
+        'Hyperlink 2': 470,
+        'Hyperlink 3': 459,
+        'Hyperlink 4': '651',
+        'Hyperlink 5': siqwe_id,
+        'Hyperlink 6': '-1',
+        'Hyperlink 7': '-1',
+        'Hyperlink 8': '-1',
+        'Hyperlink 9': '-1',
+        'Hyperlink 10': '-1',
+        'Hyperlink 11': '-1',
+        'Hyperlink 12': '-1',
+        'Hyperlink 13': '-1',
+        'Hyperlink 14': '-1',
+        'Hyperlink 15': '-1',
+        'Hyperlink 16': '-1',
+        'Stellar 1': 753,
+        'Stellar 2': '-1',
+        'Stellar 3': '-1',
+        'Stellar 4': '-1',
+        'Stellar 5': '-1',
+        'Stellar 6': '-1',
+        'Stellar 7': '-1',
+        'Stellar 8': '-1',
+        'Stellar 9': '-1',
+        'Stellar 10': '-1',
+        'Stellar 11': '-1',
+        'Stellar 12': '-1',
+        'Stellar 13': '-1',
+        'Stellar 14': '-1',
+        'Stellar 15': '-1',
+        'Stellar 16': '-1',
+        'Dude 1': 144,
+        'Dude 2': 144,
+        'Dude 3': 147,
+        'Dude 4': 147,
+        'Dude 5': '-1',
+        'Dude 6': '-1',
+        'Dude 7': '-1',
+        'Dude 8': '-1',
+        'Dude Probability 1': '0',
+        'Dude Probability 2': '0',
+        'Dude Probability 3': '0',
+        'Dude Probability 4': '0',
+        'Dude Probability 5': '0',
+        'Dude Probability 6': '0',
+        'Dude Probability 7': '0',
+        'Dude Probability 8': '0',
+        'Num Ships': '0',
+        'Government': -1,
+        'Message Buoy': '-1',
+        'Num Asteroids': '1',
+        'Interference': '1',
+        'Person 1': '-1',
+        'Person 2': '-1',
+        'Person 3': '-1',
+        'Person 4': '-1',
+        'Person 5': '-1',
+        'Person 6': '-1',
+        'Person 7': '-1',
+        'Person 8': '-1',
+        'Person Probability 1': '0',
+        'Person Probability 2': '0',
+        'Person Probability 3': '0',
+        'Person Probability 4': '0',
+        'Person Probability 5': '0',
+        'Person Probability 6': '0',
+        'Person Probability 7': '0',
+        'Person Probability 8': '0',
+        'Visibility': '',
+        'Background Color': '0',
+        'Murkiness': '0',
+        'Reinforcement Fleet': '0',
+        'Reinforcement Time': '0',
+        'Reinforcement Interval': '0',
+        'Asteroid Types': '0x0300',
+        'End-of-resource': 'EOR'
+    }
+
 def transpose_mission(misn, amt_misn, amt_syst, amt_govt):
     transpose_keys = [
         'Ship Dude',
@@ -124,6 +210,9 @@ def build_plugin_manually(data, out_file_name):
     for resource_type, resources in data.items():
         num_resources += len(resources)
 
+    # modify this line to skip graphics
+    skip_types = [] # ['pict', 'rle8', 'rleD', 'shan', 'spin']
+
     with open(out_file_name, 'w', newline='', encoding='latin-1') as csvfile:
 #        print(""""Format"\t"EVNEW text 1.0.1"
 #"Created by"\t"EVNEW 1.0.4"
@@ -135,10 +224,13 @@ def build_plugin_manually(data, out_file_name):
         for resource_type, resources in data.items():
             if not resources:
                 continue
+            if resource_type in skip_types:
+                print("skipping type {}".format(resource_type))
+                continue
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\0', escapechar='\0')
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='~', escapechar='=')
             print('\t'.join(header), file=csvfile, end='\r\n')
 #           writer.writeheader()
             for resource in resources.values():
@@ -158,7 +250,7 @@ def build_plugin_manually_multifile(data, out_file_name):
             print("writing {} of {} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
-            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='\\', escapechar='\0')
+            writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='~', escapechar='=')
             print('\t'.join(header), file=csvfile, end='\r\n')
 #           writer.writeheader()
             for resource in resources.values():
@@ -342,7 +434,16 @@ class Transposer():
                         self.update_resource(rsc, n_id)
                         break
 
-    def reallocate_weap(self, resources, spins):
+    def reallocate_snd(self, resources):
+        resource_type = 'snd'
+
+        for r_id, rsc in resources.items():
+            print(r_id)
+            if 200 <= r_id  <= 263:
+                n_id = self.get_avail_id('snd', 63, 200) # weapon sounds are 200 + (0-63)
+                self.update_resource(rsc, n_id)
+
+    def reallocate_weap(self, resources, spins, snd):
         resource_type = 'weap'
 
         for r_id, rsc in resources.items():
@@ -365,6 +466,15 @@ class Transposer():
                 if int(rsc['Ammo Type']) != -1:
                     rsc['Ammo Type'] = n_id - 128
 
+            # update the sound
+            os_id = int(rsc['Sound']) + 200
+            if os_id >= 0:
+                ns_id = self.get_reallocated('snd', str(os_id)) - 200
+                rsc['Sound'] = str(ns_id)
+
+            # TODO: I can also update ['Explosion Type'] but this requires bööm reassignment
+
+            # finally we can update this resource
             self.update_resource(rsc, n_id)
 
     def reallocate_weap_bays(self, resources):
@@ -460,11 +570,13 @@ class Transposer():
                 except KeyError:
                     #print("{} has not been reassigned assigned from {}".format(rsc['Name'], old_rled))
                     pass
-                rle_id = self.get_avail_id('rleD', 200, 1000, even_only=True)
+                rle_id = self.get_avail_id('rleD', 200, 1130, even_only=True)
                 print("{}: {}->{}".format(rsc['Name'], old_rled, rle_id))
                 self.update_resource(rled[old_rled], rle_id)
                 rsc[label] = str(rle_id)
 
+
+        
 
     def reallocate_ship(self, resources, shans, picts, descs):
         # TODO: Escort upgrade to (second pass)
@@ -556,7 +668,7 @@ class Transposer():
 
             self.update_resource(rsc, n_id)
 
-    def reallocate_spob(self, resources, desc):
+    def reallocate_spob(self, resources, desc, pict, snd):
         resource_type = 'spob'
 
         for r_id, rsc in resources.items():
@@ -564,8 +676,6 @@ class Transposer():
             # update the govt
             # update the landspace (pict)
             # we are ignoring sounds TODO NOTE
-            # SHOULD BE no need to update the graphics!
-            # TODO: PROBABLY NEED TO UPDATE GRAPHICS!
             rsc['Government'] = self.get_reallocated('govt', rsc['Government'])
             try:
                 rsc['Defense Dude'] = self.get_reallocated('dude', rsc['Defense Dude'])
@@ -603,6 +713,25 @@ class Transposer():
                 #print("No bar desc found for {}".format(rsc['Name']))
                 pass
 
+            # update the custom fields
+            custSnd = rsc['Custom Count']
+            os_id = int(custSnd)
+            if os_id >= 360:
+                ns_id = self.get_avail_id('snd', 2000, os_id)
+                s_rsc = snd[os_id]
+                self.update_resource(s_rsc, ns_id)
+                rsc['Custom Count'] = ns_id
+                print('sound ', os_id, ' -> ', ns_id)
+                input()
+
+            custPic = rsc['Custom Landscape']
+            op_id = int(custPic)
+            if op_id >= 128:
+                np_id = self.get_avail_id('pict', 2000, op_id)
+                p_rsc = pict[op_id]
+                self.update_resource(p_rsc, np_id)
+                rsc['Custom Landscape'] = np_id
+
             self.update_resource(rsc, n_id)
 
     def reallocate_syst(self, resources, nebu, pict):
@@ -610,9 +739,16 @@ class Transposer():
 
         SYS_Y_OFF = 700
 
+        siqwe_id = -1
+        siqwe_od = -1 
+        novas_id = 471
+
         # first reallocate the systems
         for r_id, rsc in resources.items():
             n_id = self.get_avail_id('syst', 2048)
+            if rsc['Name'] == 'Siqwe':
+                siqwe_id = n_id
+                siqwe_od = r_id
             # also transpose the systems
             y_pos = rsc["Y Position"]
             rsc["Y Position"] = str(int(y_pos) - SYS_Y_OFF)
@@ -639,6 +775,9 @@ class Transposer():
             for conn_id in [x for x in range(1, 16)]:
                 label = "Hyperlink {}".format(conn_id)
                 rsc[label] = self.get_reallocated('syst', rsc[label])
+                if r_id == siqwe_od and conn_id == 3:
+                    rsc[label] = novas_id
+                    print("Assigning {} from system {} to {}".format(label, siqwe_id, rsc[label]))
 
         def calc_nebu_picts(old_id, new_id):
             o_id_off = old_id - 128
@@ -665,8 +804,10 @@ class Transposer():
             self.update_resource(rsc, n_id)
 
         # finally, connect the new universe with the old universe
-        # IDEA: Connect SCHEROS to DSN-5651
-        # TODO! (done manually?)
+        # we already connected Siqwe to Foroth, now we need to connect the way back
+        # Connect Foroth (471) to Siqwe (siqwe_id ~> 943)
+        foroth = _generate_foroth(siqwe_id)
+        self.game_data['syst'][novas_id] = foroth
 
 def debug_func(gd, tp):
     tp.reallocate_graphics(gd)
@@ -719,10 +860,14 @@ def transpose_stuff():
 
     # TODO: I am here... I think!
 
+
     transposer.reallocate_graphics(gd)
 
+    # sounds depend on nothing? I think they do...
+    transposer.reallocate_snd(gd['snd'])
+
     # WEAP depends on GOVT and SPIN!!
-    transposer.reallocate_weap(gd['weap'], gd['spin'])
+    transposer.reallocate_weap(gd['weap'], gd['spin'], gd['snd'])
 
     # OUTF depends on GOVT and WEAP
     transposer.reallocate_outf(gd['outf'], gd['desc'], gd['pict'])
@@ -737,7 +882,7 @@ def transpose_stuff():
     transposer.reallocate_dude(gd['dude'])
 
     # SPOB depends on GOVT and DUDE
-    transposer.reallocate_spob(gd['spob'], gd['desc'])
+    transposer.reallocate_spob(gd['spob'], gd['desc'], gd['pict'], gd['snd'])
 
     # FLET depends on SHIP
     transposer.reallocate_flet(gd['flet'])
@@ -749,8 +894,8 @@ def transpose_stuff():
 
 
     # TODO: Write transposer.data() to new plugin
-    build_plugin_manually(transposer.data(), "full_plugin2.txt")
-    build_plugin_manually_multifile(transposer.data(), "part2.txt")
+    build_plugin_manually(transposer.data(), "full_plugin3.txt")
+    build_plugin_manually_multifile(transposer.data(), "part.txt")
 
 if __name__ == '__main__':
     transpose_stuff()
