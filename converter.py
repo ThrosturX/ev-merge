@@ -6,6 +6,12 @@ import os
 from pprint import pprint
 import time
 
+DEBUG = False
+
+def dprint(*args, **kwargs):
+    if DEBUG:
+        print(args, *kwargs)
+
 def _generate_foroth(siqwe_id):
     return {
         'Resource Type': 'syst',
@@ -227,7 +233,7 @@ def build_plugin_manually(data, out_file_name):
             if resource_type in skip_types:
                 print("skipping type {}".format(resource_type))
                 continue
-            print("writing {} of {} resources".format(resource_type, len(resources)))
+            print("writing {1:3d} {0:4} resources".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
             writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='~', escapechar='=')
@@ -247,7 +253,7 @@ def build_plugin_manually_multifile(data, out_file_name):
             print('"Format"\t"EVNEW text 1.0.1"', file=csvfile, end='\r\n')
             print('"Created by"\t"EVNEW 1.0.4"', file=csvfile, end='\r\n')
             print('"Number of resources"\t{}'.format(num_resources), file=csvfile, end='\r\n')
-            print("writing {} of {} resources".format(resource_type, len(resources)))
+            print("writing {1:3d} {0:4} resources (multifile)".format(resource_type, len(resources)))
             field_names = list(next(iter(resources.values())))
             header = ['"{}"'.format(x) for x in field_names]
             writer = csv.DictWriter(csvfile, field_names, delimiter='\t', quoting=csv.QUOTE_NONE, lineterminator='\r\n', quotechar='~', escapechar='=')
@@ -277,11 +283,11 @@ class Transposer():
                 t, i = line.split('\t')
                 tt = t.strip('"')
                 ii = int(i)
-                print(tt, ii)
+                dprint(tt, ii)
                 ut = used.get(tt, [])
                 ut.append(ii)
                 used[tt] = ut
-        print("ok")
+        print("Finished building 'USED' database from file")
         return used
 
     def used(self, r_type, r_id):
@@ -312,14 +318,14 @@ class Transposer():
                 if type_map[previous] == r_id:
                     p_id = previous
                     break
-            print("WARNING! NOT REALLOCATING {} (was {})".format(r_id, p_id))
+            print("WARNING! NOT REALLOCATING {} (was {}) of type {}".format(r_id, p_id, r_type))
             return old
         target = self.maps.get(r_type, {})
         target[r_id] = n_id
         self.allocated[r_type].append(n_id)
         skip_prints = ['desc']
         if r_type not in skip_prints:
-            print('transpose {}: {}->{}'.format(r_type, r_id, n_id))
+            True or print('transpose {}: {}->{}'.format(r_type, r_id, n_id))
         self.maps[r_type] = target
         return n_id
 
@@ -343,9 +349,10 @@ class Transposer():
         if int(old_id) == -1:
             return '-1'
         if resource_type == 'rleD' and int(old_id) == 2000:
+            # TODO: What is this? Oh no...
             print("searching for reassigned rled 2000")
             print(self.maps['rleD'])
-        re_id = self.maps[resource_type][old_id]
+        re_id = self.maps[resource_type][str(old_id)]
         return re_id
 
     def reallocate_govt(self, resources):
@@ -399,7 +406,7 @@ class Transposer():
             # update the pict and desc
             old_desc_id = int(r_id) + 3000 - 128
             old_pict_id = int(r_id) + 6000 - 128
-
+            
             try:
                 self.update_resource(desc[old_desc_id], n_id + 3000 - 128)
             except KeyError:
@@ -411,6 +418,136 @@ class Transposer():
         
             # assign the new id
             self.update_resource(rsc, n_id)
+
+    def add_weap_outf(self, weap, outf, ship):
+        # NOTE: Twiddling required here
+        # Basically, some weapons on ships such as the Voinian Dreadnought
+        # have weapons that don't have corresponding outfits, so we need
+        # to add those outfits in order for the game to allow the player
+        # to use those outfits.
+
+        # before we start, let's add the VH Bay Pict
+
+        sp_id = -1
+        sd_id = -1
+        vb_id = -1
+        for rsc in ship.values():
+            if rsc['Name'] == 'Voinian Heavy Fighter':
+                sp_id = int(rsc['ID']) + 4872
+                sd_id = int(rsc['ID']) + 12872
+        for rsc in outf.values():
+            if rsc['Name'] == 'Voinian Fighter Bay':
+                vb_id = rsc['ID']
+        if vb_id > 0:
+            if sp_id > 0:
+                new_pict = self.game_data['pict'][sp_id].copy()
+                self.update_resource(new_pict, vb_id + 4872)
+                print("Voinian Fighter Bay PICT added for outf {}".format(vb_id))
+            if sd_id > 0:
+                new_desc = self.game_data['desc'][sd_id].copy()
+                self.update_resource(new_desc, vb_id + 12872)
+                print("Voinian Fighter Bay DESC added for outf {}".format(vb_id))
+
+        # NOTE: we start here
+        noexist_outf = [
+                {
+                    'Name': 'En. Neutron Turret',
+                    'Short Name': 'En. Neut. Turret',
+                    'Lower Case Name': 'en. neutron turret',
+                    'Lower Case Plural Name': 'en. neutron turrets',
+                    'Copy': 'Neutron Turret',
+                    'Availability': 0,
+                    'Mod Type 1': 1,
+                    'Mod Value 1': 241,
+                    'Flags': '0x4008' # hide unless owned, can't be sold
+                },
+                {
+                    'Name': 'Salvo Rocket Launcher',
+                    'Short Name': 'Salvo R. Launcher',
+                    'Lower Case Name': 'salvo rocket launcher',
+                    'Lower Case Plural Name': 'salvo rocket launchers',
+                    'Copy': 'Rocket Launcher',
+                    'Availability': 0,
+                    'Mod Type 1': 1,
+                    'Mod Value 1': 242,
+                    'Flags': '0x4008' # hide unless owned, can't be sold
+
+                },
+                {
+                    'Name': 'Salvo Rocket',
+                    'Short Name': 'Salvo Rocket',
+                    'Lower Case Name': 'salvo rocket',
+                    'Lower Case Plural Name': 'salvo rockets',
+                    'Copy': 'Rocket',
+                    'Availability': '',
+                    'Buy Random': 100,
+                    'Mod Type 1': 3,
+                    'Mod Value 1': 242
+                },
+                {
+                    'Name': 'Voinian Interceptor Bay',
+                    'Short Name': 'Voinian Interceptor Bay',
+                    'Lower Case Name': 'Voinian interceptor bay',
+                    'Lower Case Plural Name': 'Voinian interceptor bays',
+                    'Copy': 'Voinian Fighter Bay',
+                    'Availability': 0,
+                    'Mod Type 1': 1,
+                    'Mod Value 1': 212,
+                    'Flags': '0x4008' # hide unless owned, can't be sold
+                },
+                {
+                    'Name': 'Voinian Interceptor',
+                    'Short Name': 'Voinian Interceptor',
+                    'Lower Case Name': 'Voinian interceptor',
+                    'Lower Case Plural Name': 'Voinian interceptors',
+                    'Copy': 'Voinian Heavy Fighter',
+                    'Buy Random': 100,
+                    'Availability': "",
+                    'Mod Type 1': 3,
+                    'Mod Value 1': 212
+                },
+        ]
+
+        miss_o_dict = {}
+        for o_id, rsc in outf.items():
+            name = rsc['Name']
+            for missing in noexist_outf:
+                if name == missing['Copy']:
+                    miss_o_dict[o_id] = missing
+                    break
+
+
+        for o_id, info in miss_o_dict.items(): 
+            rsc = outf[o_id]
+            r_cpy = rsc.copy()
+            rc_nid = self.get_avail_id('outf', 512)
+            r_cpy['ID'] = rc_nid
+            for field, value in info.items():
+                if field == 'Copy':
+                    continue
+                r_cpy[field] = value
+
+
+            self.game_data['outf'][rc_nid] = r_cpy
+            print("Created a new outfit {} for {} (type {})".format(rc_nid, info['Name'], info['Mod Type 1']))
+
+            # update the pict and desc
+            on_id = self.get_reallocated('outf', o_id)
+            old_desc_id = int(on_id) + 3000 - 128
+            old_pict_id = int(on_id) + 6000 - 128
+            
+            try:
+                new_desc = self.game_data['desc'][old_desc_id].copy()
+                new_desc['Name'] = info['Name']
+                self.update_resource(new_desc, rc_nid + 3000 - 128)
+            except KeyError:
+                print("no desc found for NEW outfit {}".format(info['Name']))
+            try:
+                new_pict = self.game_data['pict'][old_pict_id].copy()
+                self.update_resource(new_pict, rc_nid + 6000 - 128)
+            except KeyError:
+                print("no pict found for NEW outfit {}".format(info['Name']))
+
 
     # TODO: This probably needs to get done on the resources that use them
     def reallocate_desc(self, resources):
@@ -438,7 +575,6 @@ class Transposer():
         resource_type = 'snd'
 
         for r_id, rsc in resources.items():
-            print(r_id)
             if 200 <= r_id  <= 263:
                 n_id = self.get_avail_id('snd', 63, 200) # weapon sounds are 200 + (0-63)
                 self.update_resource(rsc, n_id)
@@ -455,7 +591,7 @@ class Transposer():
             # don't update invalid graphics
             if gfx_off >= 0:
                 # we don't need to change the spin, we just need to calculate the offset
-                print("GET OLD SPIN {}".format(old_spin_id))
+            #   print("GET OLD SPIN {}".format(old_spin_id))
                 new_spin_id = self.get_reallocated('spin', str(old_spin_id))
                 rsc['Graphics'] = str(int(new_spin_id) - 3000)
 
@@ -463,7 +599,7 @@ class Transposer():
             ammo_exceptions = ['99']
             ammo_needs_transpose = ['1', '6', '7']
             if rsc['Guidance'] not in ammo_exceptions:
-                if int(rsc['Ammo Type']) != -1:
+                if int(rsc['Ammo Type']) >= 0:
                     rsc['Ammo Type'] = n_id - 128
 
             # update the sound
@@ -505,7 +641,6 @@ class Transposer():
             if int(r_id) in skip_spins:
                 continue
             old_sprite = int(rsc['Sprite'])
-            print(type(rsc['Sprite']))
             # transpose the rle8 and rleD based on old_sprite
             rle_id = self.get_avail_id('rleD', 255, 200, even_only=True)
             mask_id = rle_id + 1
@@ -565,7 +700,7 @@ class Transposer():
                 try:
                     reassigned = self.get_reallocated('rleD', str(old_rled))
                     rsc[label] = str(reassigned)
-                    print("{} was already assigned to {}".format(rsc['Name'], reassigned))
+                    print("shan of {} was already assigned to {}".format(rsc['Name'], reassigned))
                     continue
                 except KeyError:
                     #print("{} has not been reassigned assigned from {}".format(rsc['Name'], old_rled))
@@ -592,6 +727,10 @@ class Transposer():
             n_id = self.get_avail_id('ship', 768)
             # reset availability
             rsc['Availability'] = ''
+
+            # contribute 1
+            if rsc['Contribute Bits'] == '0x0000000000000000':
+                rsc['Contribute Bits'] = '0x0000000000000001'
             # reallocate government
             rsc['Government'] = self.get_reallocated('govt', rsc['Government'])
             for num in [x for x in range(1, 8)]:
@@ -602,6 +741,11 @@ class Transposer():
                 label = 'Outfit {}'.format(num)
                 rsc[label] = self.get_reallocated('outf', rsc[label])
 
+            # if it's the voinian dreadnought, make it purchasable at isled station
+            if r_id == 139:
+                rsc['Tech Level'] = '30777'
+                rsc['Buy Random'] = 100
+
             p1_old = int(r_id) + 2872
             p2_old = int(r_id) + 4872
             d1_old = int(r_id) + 12872
@@ -609,6 +753,7 @@ class Transposer():
 
             p1_new = n_id + 2872
             p2_new = n_id + 4872
+            p3_new = n_id + 20000
             d1_new = n_id + 12872
             d2_new = n_id + 13872
 
@@ -623,6 +768,12 @@ class Transposer():
                 self.update_resource(picts[p2_old], p2_new)
             except KeyError:
                 print("Ship {} has no shipyard picture".format(rsc['Name']))
+            try:
+                p3 = picts[p2_old].copy()
+                p3['ID'] = p3_new
+                self.game_data['pict'][p3_new] = p3
+            except KeyError:
+                print("Ship {} has no shipyard picture (3)".format(rsc['Name']))
             try:
                 self.update_resource(descs[d1_old], d1_new)
             except KeyError:
@@ -675,7 +826,6 @@ class Transposer():
             n_id = self.get_avail_id('spob', 2048)
             # update the govt
             # update the landspace (pict)
-            # we are ignoring sounds TODO NOTE
             rsc['Government'] = self.get_reallocated('govt', rsc['Government'])
             try:
                 rsc['Defense Dude'] = self.get_reallocated('dude', rsc['Defense Dude'])
@@ -686,7 +836,7 @@ class Transposer():
             gfx_off = int(rsc['Graphics'])
             old_spin_id = gfx_off + 1000
             # maybe we don't need to change the spin, we just need to calculate the offset
-            print("GET OLD SPIN {}".format(old_spin_id))
+            #print("GET OLD SPIN {}".format(old_spin_id))
             try:
                 new_spin_id = self.get_reallocated('spin', str(old_spin_id))
                 rsc['Graphics'] = str(int(new_spin_id) - 1000)
@@ -733,6 +883,10 @@ class Transposer():
                 s_rsc = snd[os_id]
                 self.update_resource(s_rsc, ns_id)
                 rsc['Custom Count'] = ns_id
+
+            # allow purchase of dreadnought at Isled Station
+            if r_id == 192:
+                rsc['Special Tech 3'] = '30777'
 
             self.update_resource(rsc, n_id)
 
@@ -823,7 +977,7 @@ def update_gd_with_fd(gd, fd):
             pre_exist = True
             break
 
-    print(pre_exist)
+    dprint(pre_exist)
 
     if pre_exist:
         for rt in fd:
@@ -877,6 +1031,9 @@ def transpose_stuff():
     # SHIP depends on GOVT and WEAP and OUTF
     transposer.reallocate_ship(gd['ship'], gd['shan'], gd['pict'], gd['desc'])
 
+    # fix broken weapons without outfits
+    transposer.add_weap_outf(gd['weap'], gd['outf'], gd['ship'])
+
     # reallocate WEAPS that have SHIP dependencies
     transposer.reallocate_weap_bays(gd['weap'])
 
@@ -893,7 +1050,9 @@ def transpose_stuff():
     transposer.reallocate_syst(gd['syst'], gd['nebu'], gd['pict'])
 
     # Others?
-
+#   print(gd['spob'].keys())
+#   pprint(gd['spob'][192])
+#   pprint(gd['ship'][139])
 
     # TODO: Write transposer.data() to new plugin
     build_plugin_manually(transposer.data(), "full_plugin.txt")
