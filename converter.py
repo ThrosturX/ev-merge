@@ -1014,8 +1014,7 @@ def transpose_stuff():
     # DESC dependencies? (other than PICT)
 #   transposer.reallocate_desc(gd['desc'])
 
-    # TODO: I am here... I think!
-
+    # TODO: add boom
 
     transposer.reallocate_graphics(gd)
 
@@ -1050,6 +1049,8 @@ def transpose_stuff():
     transposer.reallocate_syst(gd['syst'], gd['nebu'], gd['pict'])
 
     # Others?
+    # TODO HERE:
+    # pers
 #   print(gd['spob'].keys())
 #   pprint(gd['spob'][192])
 #   pprint(gd['ship'][139])
